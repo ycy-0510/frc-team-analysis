@@ -5,7 +5,7 @@ import pandas as pd  # Ensure the pandas library is imported
 from selenium import webdriver
 from web import getSchoolAddress
 
-driver = webdriver.Safari()
+driver = webdriver.Safari() # OR webdriver.Chrome() OR webdriver.Firefox()
 driver.maximize_window()  # Maximize the browser window
 
 url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/master/locations/archive/all_team_locations_2024.json"
