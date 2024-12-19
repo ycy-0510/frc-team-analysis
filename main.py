@@ -5,8 +5,12 @@ import pandas as pd  # Ensure the pandas library is imported
 from selenium import webdriver
 from web import getSchoolAddress
 
-driver = webdriver.Safari() # OR webdriver.Chrome() OR webdriver.Firefox()
-driver.maximize_window()  # Maximize the browser window
+SET_Arrdess = False
+
+driver = None
+if SET_Arrdess:
+    driver = webdriver.Safari()  # OR webdriver.Chrome() OR webdriver.Firefox()
+    driver.maximize_window()  # Maximize the browser window
 
 url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/master/locations/archive/all_team_locations_2024.json"
 
@@ -56,17 +60,21 @@ team_numbers = [
 
 load_dotenv()
 
-api_key = os.getenv('API_KEY')
+api_key = os.getenv("API_KEY")
 
 if not api_key:
-    raise ValueError("API key not found. Please set the API_KEY environment variable in the .env file.")
+    raise ValueError(
+        "API key not found. Please set the API_KEY environment variable in the .env file."
+    )
 
 headers = {"X-TBA-Auth-Key": api_key}
 
 data = []  # Used to store all qualifying award information
 
 current_year = 2024  # Current year
-start_year = current_year - 3  # Start year of the last five years, including the current year
+start_year = (
+    current_year - 3
+)  # Start year of the last five years, including the current year
 
 for team_number in team_numbers:
     team_key = f"frc{team_number}"
@@ -94,16 +102,42 @@ for team_number in team_numbers:
         print(f"Unexpected response format for team {team_number}")
         print(awards)
         continue
-    address = getSchoolAddress(driver, response2.json()['school_name'])
+    if SET_Arrdess:
+        address = ""  # getSchoolAddress(driver, response2.json()['school_name'])
+    else:
+        address = "Not available"
+    grades = ["Captain", "1st Pick", "2nd Pick", "Other"]
     li = [[], [], []]
     for award in awards:
         year = award["year"]
         if year == 2022:
-            li[0].append(award["name"])
+            if len(award["recipient_list"]) > 1:
+                i = 0
+                for teamInfo in award["recipient_list"]:
+                    if teamInfo["team_key"] == team_key:
+                        li[0].append(grades[i] + ": " + award["name"])
+                    i += 1
+            else:
+                li[0].append(award["name"])
         if year == 2023:
-            li[1].append(award["name"])
+            if len(award["recipient_list"]) > 1:
+                i = 0
+                for teamInfo in award["recipient_list"]:
+                    if teamInfo["team_key"] == team_key:
+                        li[1].append(grades[i] + ": " + award["name"])
+                    i += 1
+            else:
+                li[1].append(award["name"])
         if year == 2024:
-            li[2].append(award["name"])
+            if len(award["recipient_list"]) > 1:
+                i = 0
+                for teamInfo in award["recipient_list"]:
+                    if teamInfo["team_key"] == team_key:
+                        li[2].append(grades[i] + ": " + award["name"])
+                    i += 1
+            else:
+                li[2].append(award["name"])
+        print(award)
         # if year >= start_year:
         #     event = award['event_key']
         #     name = award['name']
@@ -119,7 +153,11 @@ for team_number in team_numbers:
             "name": response2.json()["nickname"],
             "school name": response2.json()["school_name"],
             "website": response2.json()["website"],
-            "location": response2.json()["city"] + ", " + response2.json()["state_prov"] + ", " + response2.json()["country"],
+            "location": response2.json()["city"]
+            + ", "
+            + response2.json()["state_prov"]
+            + ", "
+            + response2.json()["country"],
             "address": address,
             "rookie year": response2.json()["rookie_year"],
             "2024": "\n".join(li[2]),
