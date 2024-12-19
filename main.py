@@ -4,6 +4,8 @@ import requests
 import pandas as pd  # Ensure the pandas library is imported
 from selenium import webdriver
 from web import getSchoolAddress
+from event import getAllRegionalAndChampionshipEvents
+from event import get_all_events_name
 
 SET_Arrdess = False
 
@@ -17,46 +19,46 @@ url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/mas
 response = requests.get(url)
 team_locations = response.json()
 
-team_numbers = [
-    3008,
-    4253,
-    5883,
-    6245,
-    6947,
-    6998,
-    7130,
-    7497,
-    7526,
-    7589,
-    7632,
-    7636,
-    7645,
-    7673,
-    7709,
-    8020,
-    8169,
-    8503,
-    8569,
-    8584,
-    8585,
-    8595,
-    8613,
-    8723,
-    8725,
-    8790,
-    8805,
-    8806,
-    9079,
-    9126,
-    9427,
-    9501,
-    9564,
-    9715,
-    10034,
-    10114,
-    10390,
-]
-# team_numbers =[766,812,1538,1572,1622,1972,2102,2485,2543,2658,2710,2827,2839,2984,3128,3255,3341,3647,3704,3749,3965,4160,4276,4419,4738,4919,4984,5025,5137,5474,5514,6072,6515,6695,6885,6995,7419,7441,8020,8119,8870,8888,8891,9084,9452,9573,9730,10336,10392,10586,10625]
+# team_numbers = [
+#     3008,
+#     4253,
+#     5883,
+#     6245,
+#     6947,
+#     6998,
+#     7130,
+#     7497,
+#     7526,
+#     7589,
+#     7632,
+#     7636,
+#     7645,
+#     7673,
+#     7709,
+#     8020,
+#     8169,
+#     8503,
+#     8569,
+#     8584,
+#     8585,
+#     8595,
+#     8613,
+#     8723,
+#     8725,
+#     8790,
+#     8805,
+#     8806,
+#     9079,
+#     9126,
+#     9427,
+#     9501,
+#     9564,
+#     9715,
+#     10034,
+#     10114,
+#     10390,
+# ]
+team_numbers =[766,812,1538,1572,1622,1972,2102,2485,2543,2658,2710,2827,2839,2984,3128,3255,3341,3647,3704,3749,3965,4160,4276,4419,4738,4919,4984,5025,5137,5474,5514,6072,6515,6695,6885,6995,7419,7441,8020,8119,8870,8888,8891,9084,9452,9573,9730,10336,10392,10586,10625]
 
 load_dotenv()
 
@@ -75,6 +77,10 @@ current_year = 2024  # Current year
 start_year = (
     current_year - 3
 )  # Start year of the last five years, including the current year
+
+avalibleEvents = getAllRegionalAndChampionshipEvents()
+
+eventsName = get_all_events_name()
 
 for team_number in team_numbers:
     team_key = f"frc{team_number}"
@@ -103,40 +109,43 @@ for team_number in team_numbers:
         print(awards)
         continue
     if SET_Arrdess:
-        address = ""  # getSchoolAddress(driver, response2.json()['school_name'])
+        address =  getSchoolAddress(driver, response2.json()['school_name'])
     else:
         address = "Not available"
     grades = ["Captain", "1st Pick", "2nd Pick", "Other"]
     li = [[], [], []]
     for award in awards:
         year = award["year"]
+        if award["event_key"] not in avalibleEvents:
+            continue
+        eventName = eventsName[award["event_key"]]
         if year == 2022:
             if len(award["recipient_list"]) > 1:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[0].append(grades[i] + ": " + award["name"])
+                        li[0].append(f'{grades[i]}: {award["name"]}({eventName})')
                     i += 1
             else:
-                li[0].append(award["name"])
+                li[0].append(f'{award["name"]}({eventName})')
         if year == 2023:
             if len(award["recipient_list"]) > 1:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[1].append(grades[i] + ": " + award["name"])
+                        li[1].append(f'{grades[i]}: {award["name"]}({eventName})')
                     i += 1
             else:
-                li[1].append(award["name"])
+                li[1].append(f'{award["name"]}({eventName})')
         if year == 2024:
             if len(award["recipient_list"]) > 1:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[2].append(grades[i] + ": " + award["name"])
+                        li[2].append(f'{grades[i]}: {award["name"]}({eventName})')
                     i += 1
             else:
-                li[2].append(award["name"])
+                li[2].append(f'{award["name"]}({eventName})')
         print(award)
         # if year >= start_year:
         #     event = award['event_key']
