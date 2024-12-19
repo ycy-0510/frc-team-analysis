@@ -5,3 +5,5 @@ selenium
 python-dotenv
 openpyxl
 beautifulsoup4
+python-inquirer
+inquirer

@@ -35,7 +35,7 @@ def get_events(year):
         return []
 
 
-def get_all_events():
+def getAllEvents():
     events = []
     for year in range(2022, 2025):
         events.extend(get_events(year))
@@ -45,7 +45,7 @@ def get_all_events():
         eventCodes.append(eventCode)
     return eventCodes
 
-def get_all_events_name():
+def getAllEventsName():
     events = []
     for year in range(2022, 2025):
         events.extend(get_events(year))
@@ -67,6 +67,6 @@ def getAllRegionalAndChampionshipEvents():
 
 if __name__ == "__main__":
     print(getAllRegionalAndChampionshipEvents())
-    print(get_all_events())
-    print(get_all_events_name())
+    print(getAllEvents())
+    print(getAllEventsName())
     print(event_type())

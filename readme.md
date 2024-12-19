@@ -1,6 +1,11 @@
 # Team Analysis
 
 This project fetches and analyzes data for various FRC teams, including their awards and other relevant information.
+![Screenshot of Team Analysis](https://cloud-2kwd61dsi-hack-club-bot.vercel.app/0screen_shot_2024-12-20_at_12.49.51___am.png)
+
+
+![Screenshot of Team Analysis Data](https://cloud-2kwd61dsi-hack-club-bot.vercel.app/1screen_shot_2024-12-20_at_12.49.26___am.png)
+
 
 ## Prerequisites
 

@@ -5,13 +5,43 @@ import pandas as pd  # Ensure the pandas library is imported
 from selenium import webdriver
 from web import getSchoolAddress
 from event import getAllRegionalAndChampionshipEvents
-from event import get_all_events_name
+from event import getAllEvents
+from event import getAllEventsName
+import inquirer
+from colors import bcolors
 
-SET_Arrdess = False
+print(f"{bcolors.OKBLUE}Welcome to the FRC Team Awards program!{bcolors.ENDC}")
+print("This program will fetch and save the awards data for the specified FRC teams.")
+print(f"{bcolors.WARNING}You can choose whether to set the address for each team or not. Setting the address requires a web browser. It may cause your IP address to be blocked by Google that you will see a reCAPTCHA page when searching if you set the address for too many teams in a short time. {bcolors.ENDC}")
+
+questions = [
+    inquirer.List(
+        "SET_Address",
+        message="Do you want to set the address?",
+        choices=["No","Yes"],
+    ),
+]
+answers = inquirer.prompt(questions)
+SET_Address = (answers['SET_Address']== 'Yes')
 
 driver = None
-if SET_Arrdess:
-    driver = webdriver.Safari()  # OR webdriver.Chrome() OR webdriver.Firefox()
+if SET_Address:
+    browser_choices = [
+        inquirer.List(
+            "browser",
+            message="Which browser would you like to use?",
+            choices=["Safari", "Chrome", "Firefox"],
+        ),
+    ]
+    browser_answers = inquirer.prompt(browser_choices)
+    browser_choice = browser_answers["browser"]
+
+    if browser_choice == "Safari":
+        driver = webdriver.Safari()
+    elif browser_choice == "Chrome":
+        driver = webdriver.Chrome()
+    elif browser_choice == "Firefox":
+        driver = webdriver.Firefox()
     driver.maximize_window()  # Maximize the browser window
 
 url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/master/locations/archive/all_team_locations_2024.json"
@@ -41,37 +71,49 @@ start_year = (
 )  # Start year of the last five years, including the current year
 
 avalibleEvents = getAllRegionalAndChampionshipEvents()
+event_type_question = [
+    inquirer.List(
+        "event_type",
+        message="Which events would you like to include?",
+        choices=["All Events", "Regional and Championship Events"],
+    ),
+]
+event_type_answer = inquirer.prompt(event_type_question)
+if event_type_answer["event_type"] == "All Events":
+    avalibleEvents = getAllEvents()
+else:
+    avalibleEvents = getAllRegionalAndChampionshipEvents()
 
-eventsName = get_all_events_name()
+eventsName = getAllEventsName()
 
 for team_number in team_numbers:
+    print(f"{bcolors.HEADER}Fetching data for team {team_number}...{bcolors.ENDC}")
     team_key = f"frc{team_number}"
     awards_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/awards"
     root_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}"
     response = requests.get(awards_url, headers=headers)
     response2 = requests.get(root_url, headers=headers)
-
     print(response2.text)
 
     # Check response status code
     if response.status_code != 200:
-        print(f"Error fetching data for team {team_number}: {response.status_code}")
+        print(f"{bcolors.FAIL}Error fetching data for team {team_number}: {response.status_code}{bcolors.ENDC}")
         print(response.text)
         continue  # Skip the current team and continue to the next one
 
     try:
         awards = response.json()
     except ValueError:
-        print(f"Invalid JSON response for team {team_number}")
+        print(f"{bcolors.FAIL}Invalid JSON response for team {team_number}{bcolors.ENDC}")
         continue
 
     # Ensure awards is a list
     if not isinstance(awards, list):
-        print(f"Unexpected response format for team {team_number}")
+        print(f"{bcolors.FAIL}Unexpected response format for team {team_number}{bcolors.ENDC}")
         print(awards)
         continue
-    if SET_Arrdess:
-        address =  getSchoolAddress(driver, response2.json()['school_name'])
+    if SET_Address:
+        address =  getSchoolAddress(driver, response2.json()['school_name']).replace("Address: ", "")
     else:
         address = "Not available"
     grades = ["Captain", "1st Pick", "2nd Pick", "Other"]
@@ -109,15 +151,6 @@ for team_number in team_numbers:
             else:
                 li[2].append(f'{award["name"]}({eventName})')
         print(award)
-        # if year >= start_year:
-        #     event = award['event_key']
-        #     name = award['name']
-        #     li.append({
-        #         'Team Number': team_number,
-        #         'Year': year,
-        #         'Award': name,
-        #         'Event': event
-        #     })
     data.append(
         {
             "Team Number": team_number,
@@ -150,6 +183,6 @@ if data:
     df = df.reset_index(drop=True)
     # Save DataFrame as an Excel file
     df.to_excel("team_awards.xlsx", index=False)
-    print("Data has been successfully saved to team_awards.xlsx")
+    print(f"{bcolors.OKGREEN}Data has been successfully saved to team_awards.xlsx{bcolors.ENDC}")
 else:
-    print("No data found.")
+    print(f"{bcolors.FAIL}No data found.{bcolors.ENDC}")
