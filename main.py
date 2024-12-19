@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import requests
-import pandas as pd  # 确保导入 pandas 库
+import pandas as pd  # Ensure the pandas library is imported
 from selenium import webdriver
 from web import getSchoolAddress
 
@@ -63,10 +63,10 @@ if not api_key:
 
 headers = {"X-TBA-Auth-Key": api_key}
 
-data = []  # 用于存储所有符合条件的获奖信息
+data = []  # Used to store all qualifying award information
 
-current_year = 2024  # 当前年份
-start_year = current_year - 3  # 最近五年的起始年份，包括当前年
+current_year = 2024  # Current year
+start_year = current_year - 3  # Start year of the last five years, including the current year
 
 for team_number in team_numbers:
     team_key = f"frc{team_number}"
@@ -77,11 +77,11 @@ for team_number in team_numbers:
 
     print(response2.text)
 
-    # 检查响应状态码
+    # Check response status code
     if response.status_code != 200:
         print(f"Error fetching data for team {team_number}: {response.status_code}")
         print(response.text)
-        continue  # 跳过当前队伍，继续下一个
+        continue  # Skip the current team and continue to the next one
 
     try:
         awards = response.json()
@@ -89,12 +89,12 @@ for team_number in team_numbers:
         print(f"Invalid JSON response for team {team_number}")
         continue
 
-    # 确保 awards 是一个列表
+    # Ensure awards is a list
     if not isinstance(awards, list):
         print(f"Unexpected response format for team {team_number}")
         print(awards)
         continue
-    address = getSchoolAddress(driver,response2.json()['school_name'])
+    address = getSchoolAddress(driver, response2.json()['school_name'])
     li = [[], [], []]
     for award in awards:
         year = award["year"]
@@ -119,7 +119,7 @@ for team_number in team_numbers:
             "name": response2.json()["nickname"],
             "school name": response2.json()["school_name"],
             "website": response2.json()["website"],
-            "location": response2.json()["city"] + ", " + response2.json()["state_prov"]+ ", " + response2.json()["country"],
+            "location": response2.json()["city"] + ", " + response2.json()["state_prov"] + ", " + response2.json()["country"],
             "address": address,
             "rookie year": response2.json()["rookie_year"],
             "2024": "\n".join(li[2]),
@@ -131,16 +131,16 @@ for team_number in team_numbers:
 
 
 if data:
-    # 将数据转换为 DataFrame
+    # Convert data to DataFrame
     df = pd.DataFrame(data)
 
-    # 按照队伍编号和年份排序
+    # Sort by team number and year
     df = df.sort_values(by=["Team Number"], ascending=[True])
 
-    # 重置索引
+    # Reset index
     df = df.reset_index(drop=True)
-    # 将 DataFrame 保存为 Excel 文件
+    # Save DataFrame as an Excel file
     df.to_excel("team_awards.xlsx", index=False)
-    print("数据已成功保存到 team_awards.xlsx")
+    print("Data has been successfully saved to team_awards.xlsx")
 else:
     print("No data found.")
