@@ -26,6 +26,7 @@ This project fetches and analyzes data for various FRC teams, including their aw
    ```sh
    pip install -r requirements.txt
    ```
+> Note: When using Homebrew on macOS, it is recommended to use a virtual environment (venv).
 3. Create a `.env` file in the root directory and add your TBA API key:
 
    ```env
@@ -39,7 +40,7 @@ This project fetches and analyzes data for various FRC teams, including their aw
    ```sh
    python main.py
    ```
-2. The script will fetch data for the specified teams and save the results in an Excel file named `team_awards.xlsx`.
+2. The script will fetch data for the specified teams and save the results in an Excel file named `output/team_awards_{year}_{event}.xlsx`.
 
 ## Configuration
 

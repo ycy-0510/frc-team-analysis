@@ -7,9 +7,12 @@ import inquirer
 import argparse
 from colors import bcolors
 from web import getSchoolAddress
-from event import getAllRegionalAndChampionshipEvents
-from event import getAllEvents
-from event import getAllEventsName
+from event import (
+    getAllRegionalAndChampionshipEvents,
+    getYearEventsNameAndWeek,
+    getAllEvents,
+    getAllEventsName,
+)
 from tqdm import tqdm
 
 # Set up argument parser
@@ -49,35 +52,63 @@ event_type_question = [
 ]
 event_type_answer = inquirer.prompt(event_type_question)
 
-driver = None
-if SET_Address:
-    browser_choices = [
-        inquirer.List(
-            "browser",
-            message="Which browser would you like to use?",
-            choices=["Chrome", "Safari", "Firefox"],
-        ),
-    ]
-    browser_answers = inquirer.prompt(browser_choices)
-    browser_choice = browser_answers["browser"]
+year_question = [
+    inquirer.Text(
+        "year",
+        message="Enter the year you want to analyze (e.g., 2024)",
+        validate=lambda _, x: x.isdigit() and int(x) > 2000,
+    ),
+]
+year_answer = inquirer.prompt(year_question)
+analysis_year = int(year_answer["year"])
 
-    if browser_choice == "Safari":
-        driver = webdriver.Safari()
-    elif browser_choice == "Chrome":
-        driver = webdriver.Chrome()
-    elif browser_choice == "Firefox":
-        driver = webdriver.Firefox()
-    driver.maximize_window()  # Maximize the browser window
 
 url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/master/locations/archive/all_team_locations_2024.json"
 
 response_award = requests.get(url)
 team_locations = response_award.json()
 
-team_numbers = [3008,4253,5883,6245,6947,6998,7130,7497,7526,7589,7632,7636,7645,7673,7709,8020,8169,8503,8569,8584,8585,8595,8613,8723,8725,8790,8805,8806,9079,9126,9427,9501,9564,9715,10034,10114,10390]
-# team_numbers = [ 766,812,1538,1572,1622,1972,2102,2485,2543,2658,2710,2827,2839,2984,3128,3255,3341,3647,3704,3749,3965,4160,4276,4419,4738,4919,4984,5025,5137,5474,5514,6072,6515,6695,6885,6995,7419,7441,8020,8119,8870,8888,8891,9084,9452,9573,9730,10336,10392,10586,10625,]
 
-team_numbers = sorted(team_numbers)
+# team_numbers = [
+#     3008,
+#     4253,
+#     5883,
+#     6245,
+#     6947,
+#     6998,
+#     7130,
+#     7497,
+#     7526,
+#     7589,
+#     7632,
+#     7636,
+#     7645,
+#     7673,
+#     7709,
+#     8020,
+#     8169,
+#     8503,
+#     8569,
+#     8584,
+#     8585,
+#     8595,
+#     8613,
+#     8723,
+#     8725,
+#     8790,
+#     8805,
+#     8806,
+#     9079,
+#     9126,
+#     9427,
+#     9501,
+#     9564,
+#     9715,
+#     10034,
+#     10114,
+#     10390,
+# ]
+# team_numbers = [ 766,812,1538,1572,1622,1972,2102,2485,2543,2658,2710,2827,2839,2984,3128,3255,3341,3647,3704,3749,3965,4160,4276,4419,4738,4919,4984,5025,5137,5474,5514,6072,6515,6695,6885,6995,7419,7441,8020,8119,8870,8888,8891,9084,9452,9573,9730,10336,10392,10586,10625,]
 load_dotenv()
 
 api_key = os.getenv("API_KEY")
@@ -91,29 +122,79 @@ headers = {"X-TBA-Auth-Key": api_key}
 
 data = []  # Used to store all qualifying award information
 
-current_year = 2024  # Current year
-start_year = (
-    current_year - 3
-)
-
 print(f"{bcolors.HEADER}Fetching events for the last 3 years...{bcolors.ENDC}")
-avalibleEvents = getAllRegionalAndChampionshipEvents()
+avalibleEvents = []
 if event_type_answer["event_type"] == "All Events":
-    avalibleEvents = getAllEvents()
+    avalibleEvents = getAllEvents(analysis_year)
 else:
-    avalibleEvents = getAllRegionalAndChampionshipEvents()
+    avalibleEvents = getAllRegionalAndChampionshipEvents(analysis_year)
 
-eventsName = getAllEventsName()
-with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="teams") as pbar:
+eventsName = getAllEventsName(analysis_year)
+yearEventNameAndWeek = getYearEventsNameAndWeek(analysis_year)
+
+event_selection_question = [
+    inquirer.List(
+        "selected_events",
+        message="Select the event you want to include",
+        choices=[
+            (yearEventNameAndWeek[event]["name"], event)
+            for event in yearEventNameAndWeek
+        ],
+    ),
+]
+event_selection_answer = inquirer.prompt(event_selection_question)
+selected_events = event_selection_answer["selected_events"]
+
+
+team_numbers = []
+event_teams_url = (
+    f"https://www.thebluealliance.com/api/v3/event/{selected_events}/teams"
+)
+response_event_teams = requests.get(event_teams_url, headers=headers)
+
+if response_event_teams.status_code != 200:
+    print(
+        f"{bcolors.FAIL}Error fetching teams for event {selected_events}: {response_event_teams.status_code}{bcolors.ENDC}"
+    )
+    print_detail(response_event_teams.text)
+else:
+    try:
+        event_teams = response_event_teams.json()
+        team_numbers = [team["team_number"] for team in event_teams]
+    except ValueError:
+        print(f"{bcolors.FAIL}Invalid JSON response for event teams{bcolors.ENDC}")
+team_numbers = sorted(team_numbers)
+
+driver = None
+if SET_Address:
+    browser_choices = [
+        inquirer.List(
+            "browser",
+            message="Which browser would you like to use?",
+            choices=["Chrome", "Safari", "Firefox"],
+        ),
+    ]
+    browser_answers = inquirer.prompt(browser_choices)
+    browser_choice = browser_answers["browser"]
+    print(f"{bcolors.HEADER}Opening {browser_choice} browser...{bcolors.ENDC}")
+    if browser_choice == "Safari":
+        driver = webdriver.Safari()
+    elif browser_choice == "Chrome":
+        driver = webdriver.Chrome()
+    elif browser_choice == "Firefox":
+        driver = webdriver.Firefox()
+    driver.maximize_window()  # Maximize the browser window
+
+with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="team") as pbar:
     for team_number in team_numbers:
         # print(f"{bcolors.HEADER}Fetching data for team {team_number}...{bcolors.ENDC}")
-        pbar.set_description(f"{bcolors.HEADER}Fetching data for team {team_number}...{bcolors.ENDC}")
+        pbar.set_description(
+            f"{bcolors.HEADER}Fetching data for team {team_number}...{bcolors.ENDC}"
+        )
         team_key = f"frc{team_number}"
         awards_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/awards"
         root_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}"
-        status_url = (
-            f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{2025}/statuses"
-        )
+        status_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{analysis_year}/statuses"
         response_award = requests.get(awards_url, headers=headers)
         response_team = requests.get(root_url, headers=headers)
         response_status = requests.get(status_url, headers=headers)
@@ -158,38 +239,27 @@ with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="teams") a
             if award["event_key"] not in avalibleEvents:
                 continue
             eventName = eventsName[award["event_key"]]
-            if year == 2022:
+            if analysis_year - year <= 3 and analysis_year - year > 0:
                 if len(award["recipient_list"]) > 1:
                     i = 0
                     for teamInfo in award["recipient_list"]:
                         if teamInfo["team_key"] == team_key:
-                            li[0].append(f'{eventName}: {award["name"]} ({grades[i]})')
+                            li[analysis_year - year - 1].append(
+                                f'{eventName}: {award["name"]} ({grades[i]})'
+                            )
                         i += 1
                 else:
-                    li[0].append(f'{eventName}: {award["name"]}')
-            if year == 2023:
-                if len(award["recipient_list"]) > 1:
-                    i = 0
-                    for teamInfo in award["recipient_list"]:
-                        if teamInfo["team_key"] == team_key:
-                            li[1].append(f'{eventName}: {award["name"]} ({grades[i]})')
-                        i += 1
-                else:
-                    li[1].append(f'{eventName}: {award["name"]}')
-            if year == 2024:
-                if len(award["recipient_list"]) > 1:
-                    i = 0
-                    for teamInfo in award["recipient_list"]:
-                        if teamInfo["team_key"] == team_key:
-                            li[2].append(f'{eventName}: {award["name"]} ({grades[i]})')
-                        i += 1
-                else:
-                    li[2].append(f'{eventName}: {award["name"]}')
+                    li[analysis_year - year - 1].append(f'{eventName}: {award["name"]}')
             print_detail(award)
         year_team_region = []
+        eventWeek = yearEventNameAndWeek[selected_events]["week"]
         for event in response_status.json():
-            year_team_region.append(eventsName[event])
             print_detail(eventsName[event])
+            try:
+                if  yearEventNameAndWeek[event]["week"]< eventWeek:
+                    year_team_region.append(eventsName[event])
+            except:
+                pass
         data.append(
             {
                 "Team Number": team_number,
@@ -203,10 +273,10 @@ with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="teams") a
                 + response_team.json()["country"],
                 "address": address,
                 "rookie year": response_team.json()["rookie_year"],
-                "2024": "\n".join(li[2]),
-                "2023": "\n".join(li[1]),
-                "2022": "\n".join(li[0]),
-                "Events": "\n".join(year_team_region),
+                str(analysis_year - 1): "\n".join(li[0]),
+                str(analysis_year - 2): "\n".join(li[1]),
+                str(analysis_year - 3): "\n".join(li[2]),
+                f"{analysis_year} Events": "\n".join(year_team_region),
             }
         )
         print_detail(data[len(data) - 1])
@@ -222,10 +292,12 @@ if data:
     # Reset index
     df = df.reset_index(drop=True)
     # Save DataFrame as an Excel file
-    df.to_excel("team_awards.xlsx", index=False)
+    if not os.path.exists('output'):
+        os.makedirs('output')
+    df.to_excel(f"output/team_awards_{analysis_year}_{yearEventNameAndWeek[selected_events]['name']}.xlsx", index=False)
 
     print(
-        f"{bcolors.OKGREEN}Data has been successfully saved to team_awards.xlsx{bcolors.ENDC}"
+        f"{bcolors.OKGREEN}Data has been successfully saved to output/team_awards_{analysis_year}_{yearEventNameAndWeek[selected_events]['name']}.xlsx{bcolors.ENDC}"
     )
 else:
     print(f"{bcolors.FAIL}No data found.{bcolors.ENDC}")

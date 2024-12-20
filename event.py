@@ -35,9 +35,9 @@ def get_events(year):
         return []
 
 
-def getAllEvents():
+def getAllEvents(analysis_year):
     events = []
-    for year in range(2022, 2025):
+    for year in range(analysis_year - 3, analysis_year):
         events.extend(get_events(year))
     eventCodes = []
     for event in events:
@@ -45,18 +45,28 @@ def getAllEvents():
         eventCodes.append(eventCode)
     return eventCodes
 
-def getAllEventsName():
+
+def getYearEventsNameAndWeek(analysis_year):
+    events = get_events(analysis_year)
+    eventMap = {}
+    for event in events:
+        eventMap[event["key"]] = {"name": event["name"], "week": event["week"]}
+    return eventMap
+
+
+def getAllEventsName(analysis_year):
     events = []
-    for year in range(2022, 2026):
+    for year in range(analysis_year - 3, analysis_year + 1):
         events.extend(get_events(year))
     eventMap = {}
     for event in events:
-        eventMap[event['key']] = event["name"]
+        eventMap[event["key"]] = event["name"]
     return eventMap
 
-def getAllRegionalAndChampionshipEvents():
+
+def getAllRegionalAndChampionshipEvents(analysis_year):
     events = []
-    for year in range(2022, 2025):
+    for year in range(analysis_year - 3, analysis_year):
         events.extend(get_events(year))
     eventCodes = []
     for event in events:
@@ -65,8 +75,10 @@ def getAllRegionalAndChampionshipEvents():
             eventCodes.append(eventCode)
     return eventCodes
 
+
 if __name__ == "__main__":
-    print(getAllRegionalAndChampionshipEvents())
-    print(getAllEvents())
-    print(getAllEventsName())
+    print(getAllRegionalAndChampionshipEvents(2025))
+    print(getAllEvents(2025))
+    print(getAllEventsName(2025))
+    print(getYearEventsNameAndWeek(2025))
     print(event_type())

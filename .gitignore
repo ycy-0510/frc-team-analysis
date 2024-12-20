@@ -1,4 +1,4 @@
 .env
-team_awards.xlsx
 __pycache__/
 venv/
+output/
