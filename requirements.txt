@@ -7,3 +7,4 @@ openpyxl
 beautifulsoup4
 python-inquirer
 inquirer
+tqdm
