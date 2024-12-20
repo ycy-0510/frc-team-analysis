@@ -8,7 +8,18 @@ from event import getAllRegionalAndChampionshipEvents
 from event import getAllEvents
 from event import getAllEventsName
 import inquirer
+import argparse
 from colors import bcolors
+
+# Set up argument parser
+parser = argparse.ArgumentParser(description="Process some integers.")
+parser.add_argument('-d', '--detail', action='store_true', help='Print details')
+args = parser.parse_args()
+
+# Function to print details if -d flag is passed
+def print_detail(message):
+    if args.detail:
+        print(message)
 
 print(f"{bcolors.OKBLUE}Welcome to the FRC Team Awards program!{bcolors.ENDC}")
 print("This program will fetch and save the awards data for the specified FRC teams.")
@@ -23,6 +34,15 @@ questions = [
 ]
 answers = inquirer.prompt(questions)
 SET_Address = (answers['SET_Address']== 'Yes')
+
+event_type_question = [
+    inquirer.List(
+        "event_type",
+        message="Which events would you like to include?",
+        choices=["All Events", "Regional and Championship Events"],
+    ),
+]
+event_type_answer = inquirer.prompt(event_type_question)
 
 driver = None
 if SET_Address:
@@ -46,8 +66,8 @@ if SET_Address:
 
 url = "https://raw.githubusercontent.com/franspaco/frc_season_map/refs/heads/master/locations/archive/all_team_locations_2024.json"
 
-response = requests.get(url)
-team_locations = response.json()
+response_award = requests.get(url)
+team_locations = response_award.json()
 
 # team_numbers = [3008,4253,5883,6245,6947,6998,7130,7497,7526,7589,7632,7636,7645,7673,7709,8020,8169,8503,8569,8584,8585,8595,8613,8723,8725,8790,8805,8806,9079,9126,9427,9501,9564,9715,10034,10114,10390]
 team_numbers =[766,812,1538,1572,1622,1972,2102,2485,2543,2658,2710,2827,2839,2984,3128,3255,3341,3647,3704,3749,3965,4160,4276,4419,4738,4919,4984,5025,5137,5474,5514,6072,6515,6695,6885,6995,7419,7441,8020,8119,8870,8888,8891,9084,9452,9573,9730,10336,10392,10586,10625]
@@ -71,14 +91,6 @@ start_year = (
 )  # Start year of the last five years, including the current year
 
 avalibleEvents = getAllRegionalAndChampionshipEvents()
-event_type_question = [
-    inquirer.List(
-        "event_type",
-        message="Which events would you like to include?",
-        choices=["All Events", "Regional and Championship Events"],
-    ),
-]
-event_type_answer = inquirer.prompt(event_type_question)
 if event_type_answer["event_type"] == "All Events":
     avalibleEvents = getAllEvents()
 else:
@@ -91,18 +103,20 @@ for team_number in team_numbers:
     team_key = f"frc{team_number}"
     awards_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/awards"
     root_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}"
-    response = requests.get(awards_url, headers=headers)
-    response2 = requests.get(root_url, headers=headers)
-    print(response2.text)
+    status_url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{2025}/statuses"
+    response_award = requests.get(awards_url, headers=headers)
+    response_team = requests.get(root_url, headers=headers)
+    response_status = requests.get(status_url, headers=headers)
+    print_detail(response_team.text)
 
     # Check response status code
-    if response.status_code != 200:
-        print(f"{bcolors.FAIL}Error fetching data for team {team_number}: {response.status_code}{bcolors.ENDC}")
-        print(response.text)
+    if response_award.status_code != 200:
+        print(f"{bcolors.FAIL}Error fetching data for team {team_number}: {response_award.status_code}{bcolors.ENDC}")
+        print_detail(response_award.text)
         continue  # Skip the current team and continue to the next one
 
     try:
-        awards = response.json()
+        awards = response_award.json()
     except ValueError:
         print(f"{bcolors.FAIL}Invalid JSON response for team {team_number}{bcolors.ENDC}")
         continue
@@ -110,10 +124,13 @@ for team_number in team_numbers:
     # Ensure awards is a list
     if not isinstance(awards, list):
         print(f"{bcolors.FAIL}Unexpected response format for team {team_number}{bcolors.ENDC}")
-        print(awards)
+        print_detail(awards)
         continue
     if SET_Address:
-        address =  getSchoolAddress(driver, response2.json()['school_name']).replace("Address: ", "")
+        try:
+            address =  getSchoolAddress(driver, response_team.json()['school_name']).replace("Address: ", "")
+        except:
+            address = "Not available"
     else:
         address = "Not available"
     grades = ["Captain", "1st Pick", "2nd Pick", "Other"]
@@ -128,48 +145,53 @@ for team_number in team_numbers:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[0].append(f'{grades[i]}: {award["name"]}({eventName})')
+                        li[0].append(f'{eventName}: {award["name"]} ({grades[i]})')
                     i += 1
             else:
-                li[0].append(f'{award["name"]}({eventName})')
+                li[0].append(f'{eventName}: {award["name"]}')
         if year == 2023:
             if len(award["recipient_list"]) > 1:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[1].append(f'{grades[i]}: {award["name"]}({eventName})')
+                        li[1].append(f'{eventName}: {award["name"]} ({grades[i]})')
                     i += 1
             else:
-                li[1].append(f'{award["name"]}({eventName})')
+                li[1].append(f'{eventName}: {award["name"]}')
         if year == 2024:
             if len(award["recipient_list"]) > 1:
                 i = 0
                 for teamInfo in award["recipient_list"]:
                     if teamInfo["team_key"] == team_key:
-                        li[2].append(f'{grades[i]}: {award["name"]}({eventName})')
+                        li[2].append(f'{eventName}: {award["name"]} ({grades[i]})')
                     i += 1
             else:
-                li[2].append(f'{award["name"]}({eventName})')
-        print(award)
+                li[2].append(f'{eventName}: {award["name"]}')
+        print_detail(award)
+    year_team_region = []
+    for event in  response_status.json():
+        year_team_region.append(eventsName[event])
+        print_detail(eventsName[event])
     data.append(
         {
             "Team Number": team_number,
-            "name": response2.json()["nickname"],
-            "school name": response2.json()["school_name"],
-            "website": response2.json()["website"],
-            "location": response2.json()["city"]
+            "name": response_team.json()["nickname"],
+            "school name": response_team.json()["school_name"],
+            "website": response_team.json()["website"],
+            "location": response_team.json()["city"]
             + ", "
-            + response2.json()["state_prov"]
+            + response_team.json()["state_prov"]
             + ", "
-            + response2.json()["country"],
+            + response_team.json()["country"],
             "address": address,
-            "rookie year": response2.json()["rookie_year"],
+            "rookie year": response_team.json()["rookie_year"],
             "2024": "\n".join(li[2]),
             "2023": "\n".join(li[1]),
             "2022": "\n".join(li[0]),
+            "Events": "\n".join(year_team_region),
         }
     )
-    print(data[len(data) - 1])
+    print_detail(data[len(data) - 1])
 
 
 if data:

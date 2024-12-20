@@ -47,7 +47,7 @@ def getAllEvents():
 
 def getAllEventsName():
     events = []
-    for year in range(2022, 2025):
+    for year in range(2022, 2026):
         events.extend(get_events(year))
     eventMap = {}
     for event in events:
