@@ -191,7 +191,18 @@ with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="team") as
                 address = "Not available"
         else:
             address = "Not available"
-        grades = ["Captain", "1st Pick", "2nd Pick", "Other"]
+        grades = [
+            "Captain",
+            "1st Pick",
+            "2nd Pick",
+            "Other",
+            "Other",
+            "Other",
+            "Other",
+            "Other",
+            "Other",
+            "Other",
+        ]
         li = [[], [], []]
         for award in awards:
             year = award["year"]
@@ -215,7 +226,7 @@ with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="team") as
         for event in response_status.json():
             print_detail(eventsName[event])
             try:
-                if  yearEventNameAndWeek[event]["week"]< eventWeek:
+                if yearEventNameAndWeek[event]["week"] < eventWeek:
                     year_team_region.append(eventsName[event])
             except:
                 pass
@@ -251,9 +262,12 @@ if data:
     # Reset index
     df = df.reset_index(drop=True)
     # Save DataFrame as an Excel file
-    if not os.path.exists('output'):
-        os.makedirs('output')
-    df.to_excel(f"output/team_awards_{analysis_year}_{yearEventNameAndWeek[selected_events]['name']}.xlsx", index=False)
+    if not os.path.exists("output"):
+        os.makedirs("output")
+    df.to_excel(
+        f"output/team_awards_{analysis_year}_{yearEventNameAndWeek[selected_events]['name']}.xlsx",
+        index=False,
+    )
 
     print(
         f"{bcolors.OKGREEN}Data has been successfully saved to output/team_awards_{analysis_year}_{yearEventNameAndWeek[selected_events]['name']}.xlsx{bcolors.ENDC}"
