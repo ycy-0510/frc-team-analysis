@@ -246,7 +246,7 @@ with tqdm(total=len(team_numbers), desc="Fetching team data...", unit="team") as
                 str(analysis_year - 1): "\n".join(li[0]),
                 str(analysis_year - 2): "\n".join(li[1]),
                 str(analysis_year - 3): "\n".join(li[2]),
-                f"{analysis_year} Events": "\n".join(year_team_region),
+                f"{analysis_year} events(~W{eventWeek-1})": "\n".join(year_team_region),
             }
         )
         print_detail(data[len(data) - 1])
